@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rohit Sharma - The Hitman | Tribute, Quiz & Fan Ratings</title>
+  
+  <!-- sql.js Library (In-Browser SQLite via WebAssembly) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+
+  <style>
+    :root {
+      --primary: #0d233a;
+      --secondary: #00529b;
+      --accent: #ffb81c;
+      --light-bg: #f4f7f6;
+      --card-bg: #ffffff;
+      --text-dark: #222222;
+      --success: #28a745;
+      --danger: #dc3545;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--light-bg);
+      color: var(--text-dark);
+      line-height: 1.6;
+      padding: 0 15px 40px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      text-align: center;
+      padding: 40px 20px;
+      margin-bottom: 30px;
+      border-bottom: 5px solid var(--accent);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    header h1 {
+      font-size: 2.8rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 1.2rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Bio Section */
+    .bio-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 25px;
+      align-items: center;
+    }
+
+    .bio-img-container {
+      text-align: center;
+    }
+
+    .bio-img {
+      width: 100%;
+      max-width: 250px;
+      border-radius: 50%;
+      border: 4px solid var(--accent);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    .bio-content h2 {
+      color: var(--primary);
+      margin-bottom: 12px;
+      font-size: 1.8rem;
+    }
+
+    .bio-content p {
+      margin-bottom: 15px;
+      color: #444;
+    }
+
+    .stats-list {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .stats-badge {
+      background: #eef4fc;
+      border: 1px solid var(--secondary);
+      color: var(--secondary);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    /* Quiz Styling */
+    .quiz-section h2, .db-section h2 {
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 2rem;
+    }
+
+    .question-box {
+      background: #fafafa;
+      border-left: 5px solid var(--accent);
+      padding: 18px 20px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+
+    .question-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .btn-option {
+      background: white;
+      border: 2px solid var(--secondary);
+      color: var(--secondary);
+      padding: 14px 20px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-option:hover {
+      background: var(--secondary);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .feedback {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: none;
+    }
+
+    .feedback.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+
+    .feedback.danger {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+
+    /* SQLite Dashboard & Rating Form */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+
+    .metric-card {
+      background: #f0f4f8;
+      border-top: 4px solid var(--secondary);
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .metric-label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .rating-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      background: #fafafa;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group label {
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .form-group input, .form-group select {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    .btn-submit {
+      background: var(--primary);
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-submit:hover {
+      background: var(--secondary);
+    }
+
+    .ratings-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    .ratings-table th, .ratings-table td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+
+    .ratings-table th {
+      background: #f0f4f8;
+      color: var(--primary);
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 650px) {
+      .bio-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .options-grid, .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <h1>Rohit Sharma</h1>
+    <p>“The Hitman” — World Cup Winning Captain & Master of Power Hitting</p>
+  </header>
+
+  <div class="container">
+
+    <!-- Visual & Bio Section -->
+    <section class="card bio-grid">
+      <div class="bio-img-container">
+        <img 
+          src="rohit.jpg" 
+          alt="Rohit Sharma" 
+          class="bio-img" 
+        />
+      </div>
+      <div class="bio-content">
+        <h2>Celebrating Greatness</h2>
+        <p>
+          Rohit Sharma is universally celebrated as one of the most elegant, destructive, and accomplished white-ball openers in cricket history. Famous for his effortless time at the crease, he led India to victory in the 2024 ICC T20 World Cup and holds record-shattering achievements across all formats.
+        </p>
+        <ul class="stats-list">
+          <li class="stats-badge">3 ODI Double Centuries</li>
+          <li class="stats-badge">Highest ODI Score: 264</li>
+          <li class="stats-badge">2024 T20 World Cup Champion</li>
+          <li class="stats-badge">5 IPL Titles (Captain)</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Interactive Quiz Section -->
+    <section class="card quiz-section">
+      <h2>Interactive Cricket Quiz</h2>
+
+      <div class="question-box">
+        <div class="question-title">
+          Which famous cricket shot is Rohit Sharma signature for playing effortlessly?
+        </div>
+
+        <div class="options-grid">
+          <button class="btn-option" onclick="checkAnswer('pull')">Pull Shot</button>
+          <button class="btn-option" onclick="checkAnswer('straight')">Straight Drive</button>
+          <button class="btn-option" onclick="checkAnswer('cover')">Cover Drive</button>
+          <button class="btn-option" onclick="checkAnswer('helicopter')">Helicopter Shot</button>
+        </div>
+
+        <div id="quiz-feedback" class="feedback"></div>
+      </div>
+    </section>
+
+    <!-- Fan Rating Database & Dashboard -->
+    <section class="card db-section">
+      <h2>Fan Ratings & Live Statistics</h2>
+
+      <!-- Statistics Dashboard -->
+      <div class="dashboard-grid">
+        <div class="metric-card">
+          <div id="total-ratings" class="metric-value">0</div>
+          <div class="metric-label">Total Submissions</div>
+        </div>
+        <div class="metric-card">
+          <div id="highest-rating" class="metric-value">-</div>
+          <div class="metric-label">Highest Rating (Out of 10)</div>
+        </div>
+        <div class="metric-card">
+          <div id="average-rating" class="metric-value">-</div>
+          <div class="metric-label">Average Rating</div>
+        </div>
+      </div>
+
+      <!-- Rating Submission Form -->
+      <form class="rating-form" onsubmit="submitRating(event)">
+        <div class="form-group">
+          <label for="userName">Your Name:</label>
+          <input type="text" id="userName" placeholder="Enter your name" required />
+        </div>
+        <div class="form-group">
+          <label for="userRating">Rating for Rohit Sharma (1 to 10):</label>
+          <select id="userRating" required>
+            <option value="">Select rating</option>
+            <option value="10">10 - Legendary</option>
+            <option value="9">9 - Outstanding</option>
+            <option value="8">8 - Excellent</option>
+            <option value="7">7 - Great</option>
+            <option value="6">6 - Good</option>
+            <option value="5">5 - Average</option>
+            <option value="4">4 - Below Average</option>
+            <option value="3">3 - Poor</option>
+            <option value="2">2 - Very Poor</option>
+            <option value="1">1 - Terrible</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-submit">Submit Rating to Database</button>
+      </form>
+
+      <!-- Live Database Table -->
+      <table class="ratings-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Rating</th>
+            <th>Submitted At</th>
+          </tr>
+        </thead>
+        <tbody id="ratings-table-body">
+          <tr>
+            <td colspan="3" style="text-align:center;">Loading SQLite database...</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>Built as a Tribute to Rohit Sharma | Powered by Local SQLite & Hosted via GitHub Pages</p>
+  </footer>
+
+  <script>
+    /* --- Quiz Logic --- */
+    function checkAnswer(shot) {
+      const feedbackEl = document.getElementById('quiz-feedback');
+      
+      if (shot === 'pull') {
+        feedbackEl.className = 'feedback success';
+        feedbackEl.innerHTML = ' Correct! Rohit Sharma is world-renowned for his majestic and effortless <strong>Pull Shot</strong>!';
+      } else {
+        feedbackEl.className = 'feedback danger';
+        feedbackEl.innerHTML = ' Incorrect, try again! While he plays great cricket shots, this is not his primary signature move.';
+      }
+    }
+
+    /* --- Local SQLite Database Engine Logic --- */
+    let db;
+
+    // Initialize in-browser SQLite database
+    initSqlJs({
+      locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+    }).then(SQL => {
+      // Create a new SQLite Database instance in memory
+      db = new SQL.Database();
+
+      // Create table for storing fan ratings
+      db.run(`
+        CREATE TABLE IF NOT EXISTS fan_ratings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          rating INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // Seed initial sample rating
+      db.run(`INSERT INTO fan_ratings (name, rating) VALUES ('Virat Kohli Fan', 10);`);
+
+      // Refresh dashboard and list
+      updateStatsAndTable();
+    });
+
+    // Form Submission Handler
+    function submitRating(event) {
+      event.preventDefault();
+      
+      const nameInput = document.getElementById('userName');
+      const ratingInput = document.getElementById('userRating');
+
+      const name = nameInput.value.trim();
+      const rating = parseInt(ratingInput.value, 10);
+
+      if (!name || isNaN(rating)) return;
+
+      // Insert record into SQLite DB
+      const stmt = db.prepare("INSERT INTO fan_ratings (name, rating, created_at) VALUES (?, ?, datetime('now', 'localtime'))");
+      stmt.run([name, rating]);
+      stmt.free();
+
+      // Clear input fields
+      nameInput.value = '';
+      ratingInput.value = '';
+
+      // Update Statistics and Table View
+      updateStatsAndTable();
+    }
+
+    // Function to calculate metrics and render table from SQLite database
+    function updateStatsAndTable() {
+      // Query 1: Metrics (Total Count, Highest, Average)
+      const statsRes = db.exec(`
+        SELECT 
+          COUNT(*) as total, 
+          MAX(rating) as highest, 
+          ROUND(AVG(rating), 1) as average 
+        FROM fan_ratings
+      `);
+
+      if (statsRes.length > 0 && statsRes[0].values.length > 0) {
+        const [total, highest, average] = statsRes[0].values[0];
+        document.getElementById('total-ratings').innerText = total || 0;
+        document.getElementById('highest-rating').innerText = highest !== null ? highest + " / 10" : "-";
+        document.getElementById('average-rating').innerText = average !== null ? average + " / 10" : "-";
+      }
+
+      // Query 2: All Submissions for Table (latest first)
+      const listRes = db.exec(`SELECT name, rating, created_at FROM fan_ratings ORDER BY id DESC`);
+      const tableBody = document.getElementById('ratings-table-body');
+      tableBody.innerHTML = '';
+
+      if (listRes.length > 0 && listRes[0].values.length > 0) {
+        listRes[0].values.forEach(row => {
+          const [name, rating, timestamp] = row;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${escapeHtml(name)}</strong></td>
+            <td>${rating} / 10</td>
+            <td><small>${timestamp}</small></td>
+          `;
+          tableBody.appendChild(tr);
+        });
+      } else {
+        tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No ratings submitted yet. Be the first!</td></tr>';
+      }
+    }
+
+    // Helper to prevent HTML injection
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+      });
+    }
+  </script>
+
+</body>
+</html>
