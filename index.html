@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Rohit Sharma - The Hitman | Tribute, Quiz & Fan Ratings</title>
   
-  <!-- sql.js Library (In-Browser SQLite via WebAssembly) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-
   <style>
     :root {
       --primary: #0d233a;
@@ -190,7 +187,7 @@
       display: block;
     }
 
-    /* SQLite Dashboard & Rating Form */
+    /* Dashboard & Rating Form Styling */
     .dashboard-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -314,6 +311,7 @@
           src="rohit.jpg" 
           alt="Rohit Sharma" 
           class="bio-img" 
+          onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/1/1e/Prime_Minister_Narendra_Modi_with_Rohit_Sharma_%28cropped%29.jpg'"
         />
       </div>
       <div class="bio-content">
@@ -350,7 +348,7 @@
       </div>
     </section>
 
-    <!-- Fan Rating Database & Dashboard -->
+    <!-- Fan Rating Database & Dashboard Section -->
     <section class="card db-section">
       <h2>Fan Ratings & Live Statistics</h2>
 
@@ -371,7 +369,7 @@
       </div>
 
       <!-- Rating Submission Form -->
-      <form class="rating-form" onsubmit="submitRating(event)">
+      <form class="rating-form" id="fan-rating-form" onsubmit="submitRating(event)">
         <div class="form-group">
           <label for="userName">Your Name:</label>
           <input type="text" id="userName" placeholder="Enter your name" required />
@@ -406,7 +404,7 @@
         </thead>
         <tbody id="ratings-table-body">
           <tr>
-            <td colspan="3" style="text-align:center;">Loading SQLite database...</td>
+            <td colspan="3" style="text-align:center;">Loading database...</td>
           </tr>
         </tbody>
       </table>
@@ -415,7 +413,7 @@
   </div>
 
   <footer>
-    <p>Built as a Tribute to Rohit Sharma | Powered by Local SQLite & Hosted via GitHub Pages</p>
+    <p>Built as a Tribute to Rohit Sharma | Hosted via GitHub Pages</p>
   </footer>
 
   <script>
@@ -432,37 +430,36 @@
       }
     }
 
-    /* --- Local SQLite Database Engine Logic --- */
-    let db;
+    /* --- Database & Local Storage Engine --- */
+    const DB_KEY = 'rohit_sharma_ratings_db_v2';
 
-    // Initialize in-browser SQLite database
-    initSqlJs({
-      locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
-    }).then(SQL => {
-      // Create a new SQLite Database instance in memory
-      db = new SQL.Database();
-
-      // Create table for storing fan ratings
-      db.run(`
-        CREATE TABLE IF NOT EXISTS fan_ratings (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          rating INTEGER NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-
+    // Retrieve records
+    function getStoredRatings() {
+      try {
+        const stored = localStorage.getItem(DB_KEY);
+        if (stored) {
+          return JSON.parse(stored);
+        }
+      } catch (e) {
+        console.error("Storage error:", e);
+      }
       // Seed initial sample rating
-      db.run(`INSERT INTO fan_ratings (name, rating) VALUES ('Virat Kohli Fan', 10);`);
+      return [{ name: "Cricket Fan", rating: 10, timestamp: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString() }];
+    }
 
-      // Refresh dashboard and list
-      updateStatsAndTable();
-    });
+    // Save records
+    function saveRatings(records) {
+      try {
+        localStorage.setItem(DB_KEY, JSON.stringify(records));
+      } catch (e) {
+        console.error("Save error:", e);
+      }
+    }
 
-    // Form Submission Handler
-    function submitRating(event) {
-      event.preventDefault();
-      
+    // Form Submit Function
+    function submitRating(e) {
+      e.preventDefault();
+
       const nameInput = document.getElementById('userName');
       const ratingInput = document.getElementById('userRating');
 
@@ -471,64 +468,72 @@
 
       if (!name || isNaN(rating)) return;
 
-      // Insert record into SQLite DB
-      const stmt = db.prepare("INSERT INTO fan_ratings (name, rating, created_at) VALUES (?, ?, datetime('now', 'localtime'))");
-      stmt.run([name, rating]);
-      stmt.free();
+      const records = getStoredRatings();
+      records.unshift({
+        name: name,
+        rating: rating,
+        timestamp: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString()
+      });
 
-      // Clear input fields
+      saveRatings(records);
+
       nameInput.value = '';
       ratingInput.value = '';
 
-      // Update Statistics and Table View
-      updateStatsAndTable();
+      renderDashboardAndTable();
     }
 
-    // Function to calculate metrics and render table from SQLite database
-    function updateStatsAndTable() {
-      // Query 1: Metrics (Total Count, Highest, Average)
-      const statsRes = db.exec(`
-        SELECT 
-          COUNT(*) as total, 
-          MAX(rating) as highest, 
-          ROUND(AVG(rating), 1) as average 
-        FROM fan_ratings
-      `);
+    // Render Stats & Table
+    function renderDashboardAndTable() {
+      const records = getStoredRatings();
 
-      if (statsRes.length > 0 && statsRes[0].values.length > 0) {
-        const [total, highest, average] = statsRes[0].values[0];
-        document.getElementById('total-ratings').innerText = total || 0;
-        document.getElementById('highest-rating').innerText = highest !== null ? highest + " / 10" : "-";
-        document.getElementById('average-rating').innerText = average !== null ? average + " / 10" : "-";
-      }
-
-      // Query 2: All Submissions for Table (latest first)
-      const listRes = db.exec(`SELECT name, rating, created_at FROM fan_ratings ORDER BY id DESC`);
+      const totalEl = document.getElementById('total-ratings');
+      const highestEl = document.getElementById('highest-rating');
+      const averageEl = document.getElementById('average-rating');
       const tableBody = document.getElementById('ratings-table-body');
-      tableBody.innerHTML = '';
 
-      if (listRes.length > 0 && listRes[0].values.length > 0) {
-        listRes[0].values.forEach(row => {
-          const [name, rating, timestamp] = row;
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>${escapeHtml(name)}</strong></td>
-            <td>${rating} / 10</td>
-            <td><small>${timestamp}</small></td>
-          `;
-          tableBody.appendChild(tr);
-        });
-      } else {
-        tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No ratings submitted yet. Be the first!</td></tr>';
+      if (!records || records.length === 0) {
+        totalEl.innerText = '0';
+        highestEl.innerText = '-';
+        averageEl.innerText = '-';
+        tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No ratings submitted yet.</td></tr>';
+        return;
       }
+
+      // Compute statistics
+      const total = records.length;
+      const highest = Math.max(...records.map(r => r.rating));
+      const sum = records.reduce((acc, r) => acc + r.rating, 0);
+      const avg = (sum / total).toFixed(1);
+
+      totalEl.innerText = total;
+      highestEl.innerText = highest + " / 10";
+      averageEl.innerText = avg + " / 10";
+
+      // Render table rows
+      tableBody.innerHTML = '';
+      records.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(item.name)}</strong></td>
+          <td>${item.rating} / 10</td>
+          <td><small>${item.timestamp}</small></td>
+        `;
+        tableBody.appendChild(tr);
+      });
     }
 
-    // Helper to prevent HTML injection
+    // Escape HTML helper
     function escapeHtml(text) {
-      return text.replace(/[&<>"']/g, function(m) {
+      return String(text).replace(/[&<>"']/g, function(m) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
       });
     }
+
+    // Initialize on page ready
+    window.onload = function() {
+      renderDashboardAndTable();
+    };
   </script>
 
 </body>
